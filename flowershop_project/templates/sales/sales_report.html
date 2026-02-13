@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Reports - Flower Shop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📊 Sales Reports & Analytics</h2>
+    <a href="{% url 'sale_list' %}" class="btn btn-outline-success">← Back to Sales</a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body text-center">
+                <h5 class="card-title">Today's Revenue</h5>
+                <h2 class="card-text">₱{{ today_total }}</h2>
+                <p class="small">{{ today_sales|length }} sales today</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body text-center">
+                <h5 class="card-title">This Week's Revenue</h5>
+                <h2 class="card-text">₱{{ week_total }}</h2>
+                <p class="small">Last 7 days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body text-center">
+                <h5 class="card-title">Average Sale</h5>
+                <h2 class="card-text">
+                    ₱{{ average_sale|default:"0" }}
+                </h2>
+                <p class="small">Per transaction</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Chart Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card chart-card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">📈 Sales Chart</h5>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">🏆 Top Selling Flowers</h5>
+            </div>
+            <div class="card-body">
+                {% if top_flowers %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Flower</th>
+                                <th>Quantity Sold</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for flower in top_flowers %}
+                            <tr>
+                                <td>{{ flower.flower__name }}</td>
+                                <td>{{ flower.total_sold }}</td>
+                                <td>₱{{ flower.total_revenue }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No sales data available yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">📋 Today's Sales</h5>
+            </div>
+            <div class="card-body">
+                {% if today_sales %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Flower</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in today_sales %}
+                            <tr>
+                                <td>{{ sale.sale_date|date:"H:i" }}</td>
+                                <td>{{ sale.flower.name }}</td>
+                                <td>₱{{ sale.total_amount }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No sales today yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">💡 Quick Insights</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <h4 class="text-warning">{{ total_customers|default:"0" }}</h4>
+                            <p class="text-muted">Unique Customers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <h4 class="text-success">{{ payment_methods.cash|default:"0" }}</h4>
+                            <p class="text-muted">Cash Payments</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <h4 class="text-primary">{{ payment_methods.card|default:"0" }}</h4>
+                            <p class="text-muted">Card Payments</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <h4 class="text-info">{{ payment_methods.transfer|default:"0" }}</h4>
+                            <p class="text-muted">Bank Transfers</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the canvas element
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    
+    // Data from Django context
+    const dayNames = [{% for name in day_names %}'{{ name }}',{% endfor %}];
+    const salesAmounts = [{% for day in last_7_days_sales %}{{ day.total_amount|default:"0" }},{% endfor %}];
+    
+    // Calculate max value for better scaling
+    const maxSales = Math.max(...salesAmounts) || 1000;
+    const suggestedMax = maxSales * 1.2; // Add 20% padding
+    
+    // Create the chart
+    const salesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dayNames,
+            datasets: [{
+                label: 'Daily Sales Revenue (₱)',
+                data: salesAmounts,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 2,
+                borderRadius: 5,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Last 7 Days Sales Performance',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 30
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 14
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const salesCount = {% for day in last_7_days_sales %}{% if forloop.counter0 == context.dataIndex %}{{ day.sales_count|default:"0" }}{% endif %}{% endfor %};
+                            return [
+                                `Revenue: ₱${value.toFixed(2)}`,
+                                `Transactions: ${salesCount}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: suggestedMax,
+                    ticks: {
+                        callback: function(value) {
+                            return '₱' + value.toLocaleString();
+                        },
+                        font: {
+                            size: 12
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Revenue (₱)',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Days',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // Add click event to bars (optional - for more interactivity)
+    salesChart.canvas.onclick = function(evt) {
+        const points = salesChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (points.length) {
+            const firstPoint = points[0];
+            const label = salesChart.data.labels[firstPoint.index];
+            const value = salesChart.data.datasets[0].data[firstPoint.index];
+            alert(`Sales for ${label}: ₱${value.toFixed(2)}`);
+        }
+    };
+});
+</script>
+{% endblock %}

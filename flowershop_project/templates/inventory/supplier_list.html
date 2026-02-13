@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Suppliers - Flower Shop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>👥 Suppliers</h2>
+    <a href="{% url 'supplier_create' %}" class="btn btn-success">➕ Add New Supplier</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {% if message.tags == 'success' %}
+                <i class="bi bi-check-circle-fill me-2"></i>
+            {% elif message.tags == 'error' %}
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">All Suppliers</h5>
+    </div>
+    <div class="card-body">
+        {% if suppliers %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact Person</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in suppliers %}
+                    <tr>
+                        <td><strong>{{ supplier.name }}</strong></td>
+                        <td>{{ supplier.contact_person }}</td>
+                        <td><a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a></td>
+                        <td><a href="tel:{{ supplier.phone }}">{{ supplier.phone }}</a></td>
+                        <td>
+                            <small class="text-muted">{{ supplier.address|truncatechars:50 }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'supplier_update' supplier.pk %}" class="btn btn-outline-primary">✏️ Edit</a>
+                                <a href="{% url 'supplier_delete' supplier.pk %}" class="btn btn-outline-danger">🗑️ Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+            </div>
+            <h5 class="text-muted">No Suppliers Yet</h5>
+            <p class="text-muted">Get started by adding your first supplier.</p>
+            <a href="{% url 'supplier_create' %}" class="btn btn-success">➕ Add Your First Supplier</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show success toast if supplier was added/updated
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create and show a toast notification
+            var toastEl = document.createElement('div');
+            toastEl.className = 'toast align-items-center text-white bg-success border-0';
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        ${'{{ message }}'}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toastEl);
+            var toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            
+            // Remove toast after it's hidden
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                document.body.removeChild(toastEl);
+            });
+        });
+        {% endif %}
+    {% endfor %}
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded-lg m-3">
+    <h1 class="display-4">🌸 Welcome to Flower Shop Management</h1>
+    <p class="lead">Manage your flower inventory, track sales, and grow your business efficiently.</p>
+    <hr class="my-4">
+    {% if user.is_authenticated %}
+        <p>Welcome back, <strong>{{ user.username }}</strong>! Ready to manage your flower shop?</p>
+        <div class="mt-4">
+            <a class="btn btn-success btn-lg" href="{% url 'dashboard' %}" role="button">Go to Dashboard</a>
+            <a class="btn btn-outline-success btn-lg" href="{% url 'flower_list' %}" role="button">View Inventory</a>
+        </div>
+    {% else %}
+        <p>Please login or register to access the complete management system.</p>
+        <div class="mt-4">
+            <a class="btn btn-success btn-lg" href="{% url 'login' %}" role="button">Login</a>
+            <a class="btn btn-outline-success btn-lg" href="{% url 'register' %}" role="button">Register</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">📦 Inventory Management</h5>
+                <p class="card-text">Track flower stock, prices, and manage your product catalog with ease.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">💰 Sales Tracking</h5>
+                <p class="card-text">Record sales, manage customers, and track your revenue streams.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">📊 Analytics & Reports</h5>
+                <p class="card-text">Get insights into your business performance with detailed reports.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

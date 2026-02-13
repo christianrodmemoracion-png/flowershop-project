@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Sale - Flower Shop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">💰 Record New Sale</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" id="saleForm">
+                    {% csrf_token %}
+                    
+                    <!-- Display form errors at the top -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Please correct the following errors:</strong>
+                        <ul>
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_flower" class="form-label">Flower *</label>
+                                <select name="flower" class="form-select" id="id_flower" required>
+                                    <option value="">Select Flower</option>
+                                    {% for flower in flowers %}
+                                        <option value="{{ flower.id }}" 
+                                                data-price="{{ flower.price }}"
+                                                data-stock="{{ flower.quantity_in_stock }}"
+                                                {% if form.flower.value == flower.id %}selected{% endif %}>
+                                            {{ flower.name }} - ₱{{ flower.price }} (Stock: {{ flower.quantity_in_stock }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_quantity" class="form-label">Quantity *</label>
+                                <input type="number" name="quantity" class="form-control" id="id_quantity" 
+                                       min="1" value="{{ form.quantity.value|default:'1' }}" required>
+                                <div class="form-text" id="stock-info">Available stock: -</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_unit_price" class="form-label">Unit Price (₱) *</label>
+                                <input type="number" name="unit_price" class="form-control" id="id_unit_price" 
+                                       step="0.01" min="0" value="{{ form.unit_price.value|default:'0' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_payment_method" class="form-label">Payment Method *</label>
+                                <select name="payment_method" class="form-select" id="id_payment_method" required>
+                                    <option value="">Select Payment Method</option>
+                                    <option value="cash" {% if form.payment_method.value == 'cash' %}selected{% endif %}>Cash</option>
+                                    <option value="card" {% if form.payment_method.value == 'card' %}selected{% endif %}>Credit Card</option>
+                                    <option value="transfer" {% if form.payment_method.value == 'transfer' %}selected{% endif %}>Bank Transfer</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_customer_name" class="form-label">Customer Name (Optional)</label>
+                                <input type="text" name="customer_name" class="form-control" id="id_customer_name" 
+                                       value="{{ form.customer_name.value|default:'' }}" placeholder="Walk-in customer">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_customer_email" class="form-label">Customer Email (Optional)</label>
+                                <input type="email" name="customer_email" class="form-control" id="id_customer_email" 
+                                       value="{{ form.customer_email.value|default:'' }}" placeholder="customer@example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                   <div class="alert alert-info">
+                        <h6>💰 Total Amount: <span id="total-amount">₱0.00</span></h6>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'sale_list' %}" class="btn btn-secondary">← Back to Sales</a>
+                        <button type="submit" class="btn btn-success">💾 Record Sale</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const flowerSelect = document.getElementById('id_flower');
+    const quantityInput = document.getElementById('id_quantity');
+    const unitPriceInput = document.getElementById('id_unit_price');
+    const totalAmountSpan = document.getElementById('total-amount');
+    const stockInfo = document.getElementById('stock-info');
+
+    function updateTotal() {
+    const quantity = parseInt(quantityInput.value) || 0;
+    const unitPrice = parseFloat(unitPriceInput.value) || 0;
+    const total = quantity * unitPrice;
+    totalAmountSpan.textContent = '₱' + total.toFixed(2);
+}
+
+    function updateStockInfo() {
+        const selectedOption = flowerSelect.options[flowerSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const stock = selectedOption.getAttribute('data-stock');
+            const price = selectedOption.getAttribute('data-price');
+            stockInfo.textContent = `Available stock: ${stock}`;
+            unitPriceInput.value = price;
+            updateTotal();
+        } else {
+            stockInfo.textContent = 'Available stock: -';
+            unitPriceInput.value = '0';
+            updateTotal();
+        }
+    }
+
+    flowerSelect.addEventListener('change', updateStockInfo);
+    quantityInput.addEventListener('input', updateTotal);
+    unitPriceInput.addEventListener('input', updateTotal);
+
+    // Validate quantity doesn't exceed stock
+    quantityInput.addEventListener('change', function() {
+        const selectedOption = flowerSelect.options[flowerSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const stock = parseInt(selectedOption.getAttribute('data-stock'));
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (quantity > stock) {
+                alert(`Cannot sell ${quantity} flowers. Only ${stock} available in stock.`);
+                quantityInput.value = stock;
+                updateTotal();
+            }
+        }
+    });
+
+    // Initialize
+    updateStockInfo();
+    updateTotal();
+});
+</script>
+{% endblock %}

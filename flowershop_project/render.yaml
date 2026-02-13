@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: flowershop
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn flowershop_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flowershop_db
+          property: connectionString
+
+databases:
+  - name: flowershop_db
+    plan: starter
